@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { supabase } from "@/lib/supabase";
+import { getUserByEmail, registerUser } from "@/lib/authdb";
 
 export async function POST(req: Request) {
   try {
@@ -12,16 +12,9 @@ export async function POST(req: Request) {
     }
 
     // Check if user already exists
-    const { data: existing, error: existingError } = await supabase
-      .from("users")
-      .select()
-      .eq("email", email);
+    const existing = await getUserByEmail(email);
 
-    if (existingError) {
-      return NextResponse.json({ error: "Database error." }, { status: 500 });
-    }
-
-    if (existing && existing.length > 0) {
+    if (existing) {
       return NextResponse.json({ error: "Email already registered." }, { status: 400 });
     }
 
@@ -29,24 +22,22 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new user
-    const { error: insertError } = await supabase
-      .from("users")
-      .insert({
-        _id: crypto.randomUUID(), // use a valid UUID
-        email,
-        firstName,
-        lastName,
-        password: hashedPassword,
-        registrationMethod: registrationMethod || "credentials",
-        isPaired: isPaired ?? false,
-        googleId: googleId ?? null,
-        creationDate: creationDate ? new Date(creationDate) : new Date(),
-        role: "user",
-        emailVerified: false,
-      });
+    const result = await registerUser({
+      _id: crypto.randomUUID(),
+      email,
+      firstName,
+      lastName,
+      password: hashedPassword,
+      registrationMethod: registrationMethod || "credentials",
+      isPaired: isPaired ?? false,
+      googleId: googleId ?? null,
+      creationDate: creationDate ? new Date(creationDate) : new Date(),
+      role: "user",
+      emailVerified: false,
+    });
 
-    if (insertError) {
-      console.log(insertError);
+    if (result.error) {
+      console.log(result.error);
       return NextResponse.json({ error: "Failed to register user." }, { status: 500 });
     }
 

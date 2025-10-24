@@ -1,18 +1,13 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { supabase } from "@/lib/supabase";
+import { getUserByEmail, registerUser, updateUser } from "@/lib/authdb";
 
 const ENABLE_VERIFIED_BY_EMAIL = false;
 
-const getUser = async (field: string, value: any) => {
+const getUser = async (email: string) => {
   try {
-    const r = await supabase.from('users').select().eq(field, value);
-    if (r.data && r.data.length === 1) {
-      return r.data[0];
-    }
-  
-    return null;
+    return await getUserByEmail(email);
   } catch (err) {
     console.log(err);
     throw 'error connecting to db';
@@ -48,9 +43,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         let user = null;
-
         try {
-          user = await getUser('email', credentials.username);
+          user = await getUser(String(credentials.username));
   
           if (!user) {
             console.log('User not found');
@@ -93,16 +87,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         // This runs on sign in
         try {
-          let userData = await getUser('email', user.email);
+          let userData = await getUser(user.email);
 
           // Handle credentials login - check if user needs pairing update
           if (account?.provider === 'credentials' && userData) {
             const hasGoogleId = userData.googleId;
             if (hasGoogleId && !userData.isPaired) {
-              // Update pairing status since user has both credentials and Google
-              const {error} = await supabase.from('users').update({
-                isPaired: true
-              }).eq('_id', userData._id);
+              await updateUser(userData._id, { isPaired: true });
             }
           }
 
@@ -124,8 +115,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               creationDate: new Date()
             };
 
-            const { error } = await supabase.from('users')
-              .insert(newUserData)
+            await registerUser(newUserData);
           } else if (!userData && account?.provider === 'credentials') {
             // This shouldn't happen as credentials users are created via registration API
             console.error('Credentials user not found in database during sign-in:', user.email);
@@ -152,8 +142,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               
               // Only update if there are changes
               if (JSON.stringify(updatedData) !== JSON.stringify(userData)) {
-                const {error} = await supabase.from('users')
-                  .update(updatedData).eq('_id', userData._id);
+                await updateUser(userData._id, updatedData);
                 // console.log('Updated user data from Google login:', userData.email);
                 if (hasPassword && !hasGoogleId) {
                   // console.log('🔗 User account paired: Google + credentials for', userData.email);

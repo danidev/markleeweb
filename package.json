@@ -11,7 +11,10 @@
   "dependencies": {
     "@auth/supabase-adapter": "^1.11.0",
     "@supabase/supabase-js": "^2.76.1",
+    "@tailwindcss/typography": "^0.5.19",
     "bcryptjs": "^3.0.2",
+    "lucide-react": "^0.547.0",
+    "marked": "^16.4.1",
     "next": "latest",
     "next-auth": "beta",
     "react": "19.2.0",
