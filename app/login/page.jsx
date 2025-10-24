@@ -1,12 +1,23 @@
 'use client';
 import { useSession, signIn, signOut } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const { data: session, status } = useSession();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const redirectPath = searchParams.get("redirect") || "/";
+
+  useEffect(() => {
+    if (session && status === "authenticated") {
+      router.replace(redirectPath);
+    }
+  }, [session, status, router, redirectPath]);
 
   if (status === "loading") {
     return <div>Loading...</div>;
@@ -28,6 +39,7 @@ export default function LoginPage() {
         setError(res.error);
       } else {
         setError("");
+        // No need to manually redirect here, useEffect will handle it
       }
     } catch(err) {
       setError("An unexpected error occurred.");
@@ -55,6 +67,9 @@ export default function LoginPage() {
             <p className="mb-4 text-zinc-800 dark:text-zinc-100">
               You are not signed in.
             </p>
+            {error && (
+              <div className="text-red-500 text-sm">{error}</div>
+            )}
             <form className="flex flex-col gap-4 w-64" onSubmit={handleSubmit}>
               <input
                 type="text"
@@ -82,6 +97,12 @@ export default function LoginPage() {
                 Sign in
               </button>
             </form>
+            <a
+              href="/register"
+              className="px-4 py-2 rounded bg-zinc-200 text-black dark:bg-zinc-800 dark:text-zinc-50 mt-4 text-center w-full"
+            >
+              Register
+            </a>
           </>
         )}
       </div>

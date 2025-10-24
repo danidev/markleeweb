@@ -12,7 +12,6 @@
     "@auth/supabase-adapter": "^1.11.0",
     "@supabase/supabase-js": "^2.76.1",
     "bcryptjs": "^3.0.2",
-    "nanoid": "^5.1.6",
     "next": "latest",
     "next-auth": "beta",
     "react": "19.2.0",

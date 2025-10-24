@@ -2,19 +2,19 @@ import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { supabase } from "@/lib/supabase";
-import idgenerator from '@/lib/idgenerator';
 
 const ENABLE_VERIFIED_BY_EMAIL = false;
 
 const getUser = async (field: string, value: any) => {
   try {
     const r = await supabase.from('users').select().eq(field, value);
-    if (r.data && r.data.length !== 1) {
+    if (r.data && r.data.length === 1) {
       return r.data[0];
     }
   
     return null;
   } catch (err) {
+    console.log(err);
     throw 'error connecting to db';
   }
 }
@@ -40,6 +40,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
 
       authorize: async (credentials) => {
+
+        console.log(credentials);
 
         if (!credentials?.username || !credentials?.password) {
           return null;
@@ -83,7 +85,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         } catch (err) {
           return null;
         }
-        
       },
     }),
   ],
@@ -111,7 +112,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             
             // Prepare user data for MySQL (Google users are auto-verified)
             const newUserData = {
-              _id: idgenerator(),
+              _id: crypto.randomUUID(),
               email: user.email,
               firstName: user.name?.split(' ')[0] || '',
               lastName: user.name?.split(' ').slice(1).join(' ') || '',
@@ -226,4 +227,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt"
   },
   secret: process.env.NEXTAUTH_SECRET,
+  logger: {
+    error(code, ...message) {
+      //console.log(code, ...message);
+    },
+    warn(code, ...message) {
+      //console.log(code, ...message);
+    },
+    debug(code, ...message) {
+      //console.log(code, ...message);
+    }
+  }
 })
