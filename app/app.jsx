@@ -6,9 +6,12 @@ import Editor from "@/components/Editor";
 import { buildFileTreeRecursive } from "@/lib/fileTree";
 import { writeTextFile } from '@/lib/fsUtils';
 import { useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function App() {
   const { data: session, status } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Load preferences from localStorage
   const [showSidebar, setShowSidebar] = useState(() => {
@@ -125,9 +128,67 @@ export default function App() {
     }
   };
 
+  // Helper to generate a hash for a file path
+  function hashFilePath(path) {
+    // Simple hash: base64 encode the path
+    return btoa(encodeURIComponent(path));
+  }
+
+  // Helper to decode hash from query string
+  function decodeHash(hash) {
+    try {
+      return decodeURIComponent(atob(hash));
+    } catch {
+      return null;
+    }
+  }
+
+  // Helper to recursively find a file by path in a nested file tree
+  function findFileByPath(files, filePath) {
+    for (const file of files) {
+      if (file.path === filePath) return file;
+      if (file.children && file.children.length > 0) {
+        const found = findFileByPath(file.children, filePath);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  // Helper to recursively find a file by path in a nested file tree and return its parent folders
+  function findFileAndParents(files, filePath, parents = []) {
+    for (const file of files) {
+      if (file.path === filePath) return { file, parents };
+      if (file.children && file.children.length > 0) {
+        const result = findFileAndParents(file.children, filePath, [...parents, file]);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+
+  // Select file by hash from query string on mount or files change
   useEffect(() => {
-    // Listen for menu events
-  }, []);
+    const fileHash = searchParams.get("file");
+    if (fileHash && files.length > 0) {
+      const filePath = decodeHash(fileHash);
+      const result = findFileAndParents(files, filePath);
+      if (result) {
+        handleFileSelect(result.file);
+        // Optionally, pass opened folders to Sidebar via prop or context
+        // For example: setOpenedFolders(result.parents.map(f => f.path));
+      }
+    }
+  }, [files, searchParams]);
+
+  // Update query string when selecting a file
+  const handleFileSelect = (file) => {
+    setSelectedFile(file);
+    if (file && file.path) {
+      const hash = hashFilePath(file.path);
+      router.replace(`?file=${hash}`);
+    }
+  };
 
   // Add a reload handler
   const handleReload = () => {
@@ -141,7 +202,7 @@ export default function App() {
       {showSidebar && (
         <Sidebar 
           width={sidebarWidth}
-          onFileSelect={setSelectedFile}
+          onFileSelect={handleFileSelect}
           selectedFile={selectedFile}
           files={files}
           currentFolder={currentFolder}
