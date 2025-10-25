@@ -200,24 +200,29 @@ export default function App() {
   return (
     <div className="flex h-screen w-screen bg-white">
       {showSidebar && (
-        <Sidebar 
-          width={sidebarWidth}
-          onFileSelect={handleFileSelect}
-          selectedFile={selectedFile}
-          files={files}
-          currentFolder={currentFolder}
-          onOpenFolder={openFolder}
-          onReload={handleReload}
-        />
+        <div
+          className="h-full bg-white border-r border-gray-200"
+          style={{ width: sidebarWidth, minWidth: sidebarWidth }}
+        >
+          <Sidebar 
+            width={sidebarWidth}
+            onFileSelect={handleFileSelect}
+            selectedFile={selectedFile}
+            files={files}
+            currentFolder={currentFolder}
+            onOpenFolder={openFolder}
+            onReload={handleReload}
+          />
+        </div>
       )}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 h-full overflow-auto">
         <Editor 
           file={selectedFile}
           onFileChange={setSelectedFile}
           isPreviewGlobal={isPreviewGlobal}
           setIsPreviewGlobal={setIsPreviewGlobal}
-          fontSize={globalFontSize} // Pass globalFontSize to Editor
-          key={fontSizeTrigger} // Force re-render when fontSizeTrigger changes
+          fontSize={globalFontSize}
+          key={fontSizeTrigger}
         />
       </div>
     </div>
